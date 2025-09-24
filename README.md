@@ -129,6 +129,8 @@ struct SimpleExample: View {
 
 > [!WARNING]
 > Because this package doesn't rely on SwiftUI's native `onDrag`, it also doesn't automatically trigger auto-scrolling when users drag the element to the edge of the parent/ancestor `ScrollView`. To enable this behavior, the `autoScrollOnEdges()` modifier needs to be applied to the `ScrollView`.
+>
+> On iOS 17, `autoScrollOnEdges()` works via a lightweight UIKit-backed introspection that tracks the underlying `UIScrollView`’s content size and offset.
 
 ```swift
 struct SimpleExample: View {

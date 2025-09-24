@@ -3,7 +3,7 @@ import SwiftUI
 /// A view that arranges its subviews in a line and allows reordering of its elements by drag and dropping.
 ///
 /// Note that this doesn't participate in iOS standard drag-and-drop mechanism and thus dragged elements can't be dropped into other views modified with `.onDrop`.
-@available(iOS 18.0, macOS 15.0, *)
+@available(iOS 17.0, macOS 15.0, *)
 package struct ReorderableStack<Axis: ContainerAxis, Data: RandomAccessCollection, Content: View>: View where Data.Element: Identifiable, Data.Index == Int {
   
   /// Creates a reorderable stack that computes its rows on demand from an underlying collection of identifiable data, with the added information of whether the user is currently dragging the element.
@@ -148,13 +148,16 @@ package struct ReorderableStack<Axis: ContainerAxis, Data: RandomAccessCollectio
   ///
   /// This definitely can be refactored.
   private func edgeCheck(_ stackDrag: DragGesture.Value, _ scrollDrag: DragGesture.Value) -> Void {
-    guard let pos = scrollContainer?.position,
+    guard let scroll = scrollContainer,
           let bounds = scrollContainer?.bounds,
           let scrollContentBounds = scrollContainer?.contentBounds,
           let scrollContainerOffset = scrollContainer?.offset
     else {
       return
     }
+    // If we don't yet have a readable scroll position (e.g., iOS 17 UIKit introspection
+    // hasn't resolved), bail out until it becomes available.
+    guard scroll.currentPoint() != nil else { return }
     
     let bumperSize = 52.0
     let speed = 3.0
@@ -162,21 +165,21 @@ package struct ReorderableStack<Axis: ContainerAxis, Data: RandomAccessCollectio
     let scrollEnd = Axis.project(size: scrollContentBounds) - Axis.project(size: bounds)
     let scrollDragPos = Axis.project(point: scrollDrag.location)
     
-    if (scrollDragPos <= bumperSize && Axis.project(maybePoint: pos.wrappedValue.point) ?? 1.0 > 0) {
+    if (scrollDragPos <= bumperSize && Axis.project(maybePoint: scroll.currentPoint()) ?? 1.0 > 0) {
       if (scrollTimer == nil) {
         var scrollOffset = Axis.project(point: scrollContainerOffset)
         var dragPos = Axis.project(point: stackDrag.location)
         
         scrollTimer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { _ in
           Task { @MainActor in
-            pos.wrappedValue.scrollTo(point: Axis.asPoint(value: scrollOffset))
+            scroll.scrollTo(Axis.asPoint(value: scrollOffset))
             
             checkIntersection(position: dragPos, dragged: dragging)
             scrollOffset -= speed
             dragPos -= speed
             
             
-            if (Axis.project(maybePoint: pos.wrappedValue.point) ?? 0.0 <= 0) {
+            if (Axis.project(maybePoint: scroll.currentPoint()) ?? 0.0 <= 0) {
               scrollTimer?.invalidate()
               scrollTimer = nil
             } else {
@@ -186,20 +189,20 @@ package struct ReorderableStack<Axis: ContainerAxis, Data: RandomAccessCollectio
           }
         }
       }
-    } else if (scrollDragPos >= Axis.project(size: bounds) - bumperSize && Axis.project(maybePoint: pos.wrappedValue.point) ?? 0.0 < scrollEnd) {
+    } else if (scrollDragPos >= Axis.project(size: bounds) - bumperSize && Axis.project(maybePoint: scroll.currentPoint()) ?? 0.0 < scrollEnd) {
       if (scrollTimer == nil) {
         var scrollOffset = Axis.project(point: scrollContainerOffset)
         var dragPos = Axis.project(point: stackDrag.location)
         
         scrollTimer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { _ in
           Task { @MainActor in
-            pos.wrappedValue.scrollTo(point: Axis.asPoint(value: scrollOffset))
+            scroll.scrollTo(Axis.asPoint(value: scrollOffset))
             
             checkIntersection(position: dragPos, dragged: dragging)
             scrollOffset += speed
             dragPos += speed
             
-            if (Axis.project(maybePoint: pos.wrappedValue.point) ?? Axis.project(size: bounds) >= scrollEnd) {
+            if (Axis.project(maybePoint: scroll.currentPoint()) ?? Axis.project(size: bounds) >= scrollEnd) {
               scrollTimer?.invalidate()
               scrollTimer = nil
             } else {
@@ -320,7 +323,7 @@ package struct ReorderableStack<Axis: ContainerAxis, Data: RandomAccessCollectio
 }
 
 
-@available(iOS 18.0, *)
+@available(iOS 17.0, *)
 package struct ReorderableElement<Position: AxisPosition, Element: Identifiable, Content: View>: View {
   var datum: Element
   var isDragged: Bool

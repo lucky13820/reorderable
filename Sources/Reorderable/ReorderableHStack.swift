@@ -5,7 +5,7 @@ import SwiftUI
 /// This component uses `DragGesture` based interaction as opposed to the long press based one that comes with [`.onDrag`](https://developer.apple.com/documentation/swiftui/view/ondrag(_:))/[`.draggable`](https://developer.apple.com/documentation/swiftui/view/draggable(_:)).
 ///
 /// > Note: While this component allows for drag-and-drop interactions, it doesn't participate in iOS standard drag-and-drop mechanism. Thus dragged elements can't be dropped into other views modified with `.onDrop`.
-@available(iOS 18.0, macOS 10.15, *)
+@available(iOS 17.0, macOS 10.15, *)
 public struct ReorderableHStack<Data: RandomAccessCollection, Content: View>: View where Data.Element: Identifiable, Data.Index == Int {
   
   /// Creates a reorderable horizontal stack that computes its rows on demand from an underlying collection of identifiable data, with the added information of whether the user is currently dragging the element.
